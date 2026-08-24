@@ -5,100 +5,78 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-const API_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQzMTQzNjdiLWJlZmItNDAxNi04OTM1LWQ5YzQ4OTBiOTgyOCIsImlhdCI6MTc4NzU5NzExOCwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTkxLjU0LjIwMy44NyJdLCJ0eXBlIjoiY2xpZW50In1dfQ.LzPlYq_m92OH4aQwVK4f3f_gkKwjjhqQlidYvrZuORdKCiAiyAzLePiNFX5tkqSSfVFWv2CcXHeW0aijfGbTSQ';
+// Serve os arquivos do site (index.html, style.css, imagens, etc.)
+app.use(express.static('./'));
 
-const CLUBES = [
-  { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
-  { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
-  { tag: '820QG8Q2V', nome: 'BBR | Lendário' },
-  { tag: '2LVV8J8C8', nome: 'BBR | Mítico' },
-  { tag: '80GYP9LCG', nome: 'BBR | Diamante' },
-  { tag: '80LJYQ982', nome: 'BBR | Ouro' },
-  { tag: '80VCJU8LV', nome: 'BBR | Prata' },
-  { tag: '2CRUQ29LL', nome: 'BBR | Bronze' }
+// Sua chave da API da Supercell
+const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQzMTQzNjdiLWJlZmItNDAxNi04OTM1LWQ5YzQ4OTBiOTgyOCIsImlhdCI6MTc4NzU5NzExOCwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTkxLjU0LjIwMy44NyJdLCJ0eXBlIjoiY2xpZW50In1dfQ.LzPlYq_m92OH4aQwVK4f3f_gkKwjjhqQlidYvrZuORdKCiAiyAzLePiNFX5tkqSSfVFWv2CcXHeW0aijfGbTSQ';
+
+// Lista com todas as TAGs dos clubes BBR
+const CLUB_TAGS = [
+  '#CQYU8RQP',  // BBR | Elite
+  '#2Q8LGGUQY', // BBR | Mestres
+  '#820QG8Q2V', // BBR | Lendário
+  '#2LVV8J8C8', // BBR | Mítico
+  '#80GYP9LCG', // BBR | Diamante
+  '#80LJYQ982', // BBR | Ouro
+  '#80VCJU8LV', // BBR | Prata
+  '#2CRUQ29LL'  // BBR | Bronze
 ];
 
-// Armazenamento em memória (Cache)
-let rankingCache = [];
-let carregandoDados = false;
+let cacheRanking = [];
 
-// Função auxiliar para aguardar entre requisições
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// Busca os membros de todos os clubes cadastrados
+async function atualizarCache() {
+  console.log('🔄 Iniciando busca dos membros dos clubes BBR...');
+  const todosJogadores = new Map();
 
-// Função que atualiza o cache dos jogadores
-async function atualizarCacheRanking() {
-  if (carregandoDados) return;
-  carregandoDados = true;
-
-  console.log("🔄 Iniciando atualização do cache do ranking...");
-  let listaAtualizada = [];
-
-  for (const clube of CLUBES) {
+  for (const tag of CLUB_TAGS) {
     try {
-      // 1. Busca os membros do clube
-      const resClube = await axios.get(
-        `https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`,
-        { headers: { Authorization: `Bearer ${API_KEY}` } }
-      );
-
-      const membros = resClube.data.items || [];
-
-      // 2. Busca detalhes de cada jogador com intervalo
-      for (const membro of membros) {
-        let pontosRanqueada = 0;
-        const tagLimpa = membro.tag.replace('#', '');
-
-        try {
-          const resPlayer = await axios.get(
-            `https://api.brawlstars.com/v1/players/%23${tagLimpa}`,
-            { headers: { Authorization: `Bearer ${API_KEY}` } }
-          );
-
-          const data = resPlayer.data;
-          
-          // Extrai o ELO atual ou melhor ELO da Ranqueada
-          pontosRanqueada = data.rankedElo || data.rankedRank || data.highestPowerLeagueRank || 0;
-        } catch (e) {
-          // Em caso de falha individual, usa 0
-          pontosRanqueada = 0;
+      const cleanTag = tag.replace('#', '');
+      const resposta = await axios.get(`https://api.brawlstars.com/v1/clubs/%23${cleanTag}/members`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
         }
+      });
 
-        listaAtualizada.push({
-          tag: membro.tag,
-          name: membro.name,
-          trophies: membro.trophies || 0,
-          pontos: pontosRanqueada,
-          clubName: clube.nome
-        });
+      const membros = resposta.data.items || [];
 
-        // Pausa de 80ms entre chamadas de perfil para não exceder limites da API
-        await sleep(80);
+      for (const membro of membros) {
+        if (!todosJogadores.has(membro.tag)) {
+          todosJogadores.set(membro.tag, {
+            nome: membro.name,
+            tag: membro.tag,
+            trofeus: membro.trophies,
+            pontos: membro.icon ? membro.icon.id : 0,
+            clube: resposta.data.name || 'BBR'
+          });
+        }
       }
-    } catch (err) {
-      console.log(`⚠️ Erro ao buscar clube ${clube.nome}:`, err.message);
+    } catch (erro) {
+      console.error(`⚠️ Erro ao buscar membros do clube ${tag}:`, erro.response ? erro.response.status : erro.message);
     }
   }
 
-  if (listaAtualizada.length > 0) {
-    rankingCache = listaAtualizada;
-    console.log(`✅ Cache atualizado com sucesso! Total de ${rankingCache.length} jogadores.`);
-  }
+  const listaOrdenada = Array.from(todosJogadores.values());
+  listaOrdenada.sort((a, b) => b.trofeus - a.trofeus);
 
-  carregandoDados = false;
+  cacheRanking = listaOrdenada;
+  console.log(`✅ Cache atualizado! Total de jogadores processados: ${cacheRanking.length}`);
 }
 
-// Endpoint que entrega o ranking salvo no cache
+// Atualiza o cache ao iniciar o servidor
+atualizarCache();
+
+// Atualiza a cada 15 minutos
+setInterval(atualizarCache, 15 * 60 * 1000);
+
+// Endpoint consumido pelo front-end
 app.get('/api/ranking', (req, res) => {
-  // Se ainda não concluiu a primeira carga, retorna o que tem ou avisa
-  res.json(rankingCache);
+  res.json(cacheRanking);
 });
 
-app.listen(3000, () => {
-  console.log("🚀 Servidor BBR Ranqueado rodando na porta 3000");
-  
-  // Executa a primeira atualização de cache ao iniciar
-  atualizarCacheRanking();
-
-  // Atualiza o cache automaticamente a cada 15 minutos (900.000 ms)
-  setInterval(atualizarCacheRanking, 15 * 60 * 1000);
+// Porta do servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
