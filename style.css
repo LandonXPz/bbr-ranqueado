@@ -1,0 +1,130 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #0d0914; /* Fundo roxo bem escuro */
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* Área reservada para a sua Logo */
+.logo-container {
+  margin-bottom: 15px;
+}
+
+.logo-container img {
+  max-width: 180px; /* Ajuste o tamanho da sua logo aqui */
+  height: auto;
+}
+
+header h1 {
+  color: #a855f7; /* Roxo vibrante */
+  font-size: 2.5rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+header p {
+  color: #c084fc; /* Roxo claro */
+  font-size: 1rem;
+  margin-top: 5px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.card-ranking {
+  background-color: #160e24; /* Card com tom de roxo escuro */
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  border: 1px solid #3b1d62; /* Borda roxa */
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 16px 20px;
+  text-align: left;
+}
+
+th {
+  background-color: #24143a; /* Cabeçalho da tabela em roxo destacado */
+  color: #e9d5ff;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+tr {
+  border-bottom: 1px solid #281840;
+}
+
+tr:nth-child(even) {
+  background-color: #120a1f;
+}
+
+tr:hover {
+  background-color: #2e1a4a; /* Destaque roxo ao passar o mouse */
+}
+
+.mensagem-status {
+  text-align: center;
+  color: #c084fc;
+  padding: 30px;
+}
+.controles-ordenacao {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 10px;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.controles-ordenacao select {
+  font-family: inherit;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.controles-ordenacao select:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.controles-ordenacao select option {
+  background-color: #1a1a2e;
+  color: #ffffff;
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBR Ranqueado</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+    <!-- Cabeçalho com Logo e Seletor -->
+    <header class="header">
+      <div class="logo-container">
+        <img src="imagens/BBR ROXO.png" alt="Logo BBR" class="logo">
+      </div>
+
+      <div class="filtro-container">
+        <label for="ordenar">ORDENAR POR:</label>
+        <select id="ordenar">
+          <option value="trofeus">Troféus</option>
+          <option value="pontos">Pontos</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Tabela de Classificação -->
+    <main class="tabela-container">
+      <table>
+        <thead>
+          <tr>
+            <th>POSIÇÃO</th>
+            <th>JOGADOR</th>
+            <th>PONTOS</th>
+            <th>TROFÉUS</th>
+            <th>CLUBE</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-corpo">
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 20px;">
+              Carregando dados da Ranqueada...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
