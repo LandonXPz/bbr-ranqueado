@@ -3,45 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const seletorOrdenacao = document.getElementById('ordenar');
   let jogadoresGlobais = [];
 
-  const API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQyYWI0Y2Y4LTYyNTMtNDE2YS1hZGJiLWRmYjcyYzcyMzBkOCIsImlhdCI6MTc4NzY2MDA1OSwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTc3LjE5MS42MC4yMDEiXSwidHlwZSI6ImNsaWVudCJ9XX0.Yg8r0FqJrRqsa-5z9vUudXxmw6Bvbar8Mhdthd3Yu7yzcISNEW4NxgN_VbIOHQlyqJKugHswEH2zhHU4tErZWg";
-
-  const CLUBES = [
-    { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
-    { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
-    { tag: '820QG8Q2V', nome: 'BBR | Lendário' },
-    { tag: '2LVV8J8C8', nome: 'BBR | Mítico' },
-    { tag: '80GYP9LCG', nome: 'BBR | Diamante' },
-    { tag: '80LJYQ982', nome: 'BBR | Ouro' },
-    { tag: '80VCJU8LV', nome: 'BBR | Prata' },
-    { tag: '2CRUQ29LL', nome: 'BBR | Bronze' }
-  ];
-
   async function carregarRanking() {
     try {
-      jogadoresGlobais = [];
+      const resposta = await fetch('/api/ranking');
+      if (!resposta.ok) throw new Error('Erro na rede');
 
-      for (const clube of CLUBES) {
-        const resposta = await fetch(`https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`, {
-          headers: {
-            'Authorization': `Bearer ${API_KEY}`
-          }
-        });
-
-        if (!resposta.ok) continue;
-
-        const dados = await resposta.json();
-        if (dados.items) {
-          dados.items.forEach(membro => {
-            jogadoresGlobais.push({
-              tag: membro.tag,
-              name: membro.name,
-              trophies: membro.trophies || 0,
-              pontos: membro.trophies || 0,
-              clubName: clube.nome
-            });
-          });
-        }
-      }
+      jogadoresGlobais = await resposta.json();
 
       if (jogadoresGlobais.length === 0) {
         if (tabelaCorpo) {
@@ -65,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabelaCorpo.innerHTML = `
           <tr>
             <td colspan="5" style="text-align: center; padding: 20px;">
-              Erro ao conectar com a API.
+              Erro ao conectar com o servidor.
             </td>
           </tr>
         `;
