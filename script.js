@@ -33,8 +33,15 @@ function renderizarTabela(jogadores) {
     jogadores.forEach((jogador, index) => {
         const linha = document.createElement('tr');
 
-        const pontosFormatados = (jogador.pontos !== undefined && jogador.pontos !== null)
-            ? jogador.pontos.toLocaleString('pt-BR')
+        // Pega a pontuação testando os nomes mais comuns vindos da API
+        const pontos = jogador.pontos 
+            ?? jogador.pontosRanqueada 
+            ?? jogador.rankingPoints 
+            ?? jogador.rankPoints 
+            ?? jogador.points;
+
+        const pontosFormatados = (pontos !== undefined && pontos !== null)
+            ? Number(pontos).toLocaleString('pt-BR')
             : '-';
 
         const trofeusFormatados = (jogador.trofeus || jogador.trophies || 0).toLocaleString('pt-BR');
