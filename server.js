@@ -20,14 +20,19 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros via Brawlify...");
+  console.log("🔄 Buscando membros via Brawlify com User-Agent...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Endpoint correto alternativo do Brawlify
+      // Adicionado User-Agent para evitar o bloqueio 403 do Cloudflare
       const resClube = await axios.get(
-        `https://api.brawlify.com/v1/clubs/${clube.tag}`
+        `https://api.brawlify.com/v1/clubs/${clube.tag}`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        }
       );
 
       const membros = resClube.data.members || [];
@@ -48,7 +53,7 @@ async function atualizarCacheRanking() {
 
   if (listaAtualizada.length > 0) {
     rankingCache = listaAtualizada;
-    console.log(`✅ Sucesso! Total de ${rankingCache.length} jogadores.`);
+    console.log(`✅ Sucesso! Total de ${rankingCache.length} jogadores carregados.`);
   }
 }
 
@@ -58,7 +63,7 @@ app.get('/api/ranking', (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor BBR Ranqueado rodando na porta ${PORT}`);
   atualizarCacheRanking();
   setInterval(atualizarCacheRanking, 10 * 60 * 1000);
 });
