@@ -1,249 +1,83 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-const path = require("path");
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
 
 const app = express();
-
 app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, ".")));
-
-// ======================================================
-// CONFIGURAÇÃO DOS 8 CLUBES
-// ======================================================
+app.use(express.static('./'));
 
 const CLUBES = [
-    { tag: "CQYU8RQP", nome: "BBR | Elite" },
-    { tag: "2Q8LGGUQY", nome: "BBR | Mestres" },
-    { tag: "820QG8Q2V", nome: "BBR | Lendário" },
-    { tag: "2LVV8J8C8", nome: "BBR | Mítico" },
-    { tag: "80GYP9LCG", nome: "BBR | Diamante" },
-    { tag: "80LJYQ982", nome: "BBR | Ouro" },
-    { tag: "80VCJU8LV", nome: "BBR | Prata" },
-    { tag: "2CRUQ29LL", nome: "BBR | Bronze" }
+  { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
+  { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
+  { tag: '820QG8Q2V', nome: 'BBR | Lendário' },
+  { tag: '2LVV8J8C8', nome: 'BBR | Mítico' },
+  { tag: '80GYP9LCG', nome: 'BBR | Diamante' },
+  { tag: '80LJYQ982', nome: 'BBR | Ouro' },
+  { tag: '80VCJU8LV', nome: 'BBR | Prata' },
+  { tag: '2CRUQ29LL', nome: 'BBR | Bronze' }
 ];
 
-// ======================================================
-// CACHE
-// ======================================================
-
 let rankingCache = [];
-let ultimaAtualizacao = null;
-let atualizando = false;
 
-// ======================================================
-// BUSCAR MEMBROS DOS CLUBES
-// ======================================================
-
-async function buscarMembrosDosClubes() {
-
-    const jogadores = new Map();
-
-    for (const clube of CLUBES) {
-
-        try {
-
-            console.log(`🔎 Buscando clube: ${clube.nome}`);
-
-            const url = `https://api.brawlapi.com/v1/clubs/%23${clube.tag}`;
-
-            const resposta = await axios.get(url, {
-                timeout: 15000
-            });
-
-            const membros = resposta.data?.members || [];
-
-            console.log(
-                `   👥 ${membros.length} jogadores encontrados`
-            );
-
-            for (const membro of membros) {
-
-                const tag = membro.tag;
-
-                if (!tag) continue;
-
-                // Evita jogador duplicado
-                if (!jogadores.has(tag)) {
-
-                    jogadores.set(tag, {
-
-                        tag: tag,
-
-                        name: membro.name || "Desconhecido",
-
-                        trophies: Number(membro.trophies || 0),
-
-                        // ==================================
-                        // RANQUEADA
-                        // ==================================
-                        //
-                        // IMPORTANTE:
-                        // A Brawl Stars API não fornece
-                        // diretamente o Elo atual aqui.
-                        //
-                        rankedPoints: null,
-                        rankedRank: null,
-                        rankedHighest: null,
-
-                        clubName: clube.nome
-
-                    });
-
-                } else {
-
-                    console.log(
-                        `⚠️ Jogador duplicado ignorado: ${tag}`
-                    );
-
-                }
-            }
-
-        } catch (erro) {
-
-            console.error(
-                `❌ Erro no clube ${clube.nome}:`,
-                erro.response?.data || erro.message
-            );
-        }
-    }
-
-    return Array.from(jogadores.values());
-}
-
-// ======================================================
-// ATUALIZAR RANKING
-// ======================================================
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function atualizarCacheRanking() {
+  console.log("🔄 Buscando membros e Elo via Brawl Time Ninja API...");
+  let listaAtualizada = [];
 
-    if (atualizando) {
-
-        console.log("⏳ Atualização já está acontecendo.");
-
-        return;
-    }
-
-    atualizando = true;
-
+  for (const clube of CLUBES) {
     try {
+      // 1. Busca os membros do clube via API pública
+      const tagClube = clube.tag.replace('#', '');
+      const resClube = await axios.get(`https://brawltime.ninja/api/trpc/club.byTag?input=%7B%22json%22%3A%22${tagClube}%22%7D`);
+      
+      const dadosClube = resClube.data?.result?.data?.json;
+      const membros = dadosClube?.members || [];
 
-        console.log("");
-        console.log("========================================");
-        console.log("🔄 ATUALIZANDO RANKING");
-        console.log("========================================");
+      for (const membro of membros) {
+        const tagMembro = membro.tag.replace('#', '');
+        let eloAtual = 0;
 
-        const jogadores = await buscarMembrosDosClubes();
-
-        if (jogadores.length === 0) {
-
-            console.log(
-                "⚠️ Nenhum jogador foi encontrado."
-            );
-
-            return;
+        try {
+          // 2. Busca o perfil individual para extrair o Elo da Ranqueada
+          const resPlayer = await axios.get(`https://brawltime.ninja/api/trpc/player.byTag?input=%7B%22json%22%3A%22${tagMembro}%22%7D`);
+          const playerJson = resPlayer.data?.result?.data?.json;
+          
+          // Extrai o Elo atual da Ranqueada
+          eloAtual = playerJson?.ranked?.current || playerJson?.powerLeague?.current || 0;
+        } catch (e) {
+          console.log(`⚠️ Não foi possível obter Elo de ${membro.name}`);
         }
 
-        rankingCache = jogadores;
+        listaAtualizada.push({
+          tag: membro.tag,
+          name: membro.name,
+          trophies: membro.trophies || 0,
+          pontos: eloAtual,
+          clubName: clube.nome
+        });
 
-        ultimaAtualizacao = new Date();
-
-        console.log("");
-        console.log(
-            `✅ ${rankingCache.length} jogadores carregados.`
-        );
-
-        console.log(
-            `🕒 Atualizado em: ${ultimaAtualizacao.toLocaleString("pt-BR")}`
-        );
-
-        console.log("========================================");
-        console.log("");
-
-    } catch (erro) {
-
-        console.error(
-            "❌ Erro geral:",
-            erro.message
-        );
-
-    } finally {
-
-        atualizando = false;
+        // Pausa curta de segurança para evitar excesso de requisições
+        await delay(150);
+      }
+    } catch (err) {
+      console.log(`⚠️ Erro no clube ${clube.nome}:`, err.message);
     }
+  }
+
+  if (listaAtualizada.length > 0) {
+    rankingCache = listaAtualizada;
+    console.log(`✅ SUCESSO! Total de ${rankingCache.length} jogadores carregados no cache.`);
+  }
 }
 
-// ======================================================
-// API DO RANKING
-// ======================================================
-
-app.get("/api/ranking", (req, res) => {
-
-    res.json({
-
-        atualizadoEm: ultimaAtualizacao,
-
-        totalJogadores: rankingCache.length,
-
-        jogadores: rankingCache
-
-    });
-
+app.get('/api/ranking', (req, res) => {
+  res.json(rankingCache);
 });
-
-// ======================================================
-// STATUS DO SERVIDOR
-// ======================================================
-
-app.get("/api/status", (req, res) => {
-
-    res.json({
-
-        online: true,
-
-        jogadores: rankingCache.length,
-
-        ultimaAtualizacao: ultimaAtualizacao,
-
-        clubesMonitorados: CLUBES.length
-
-    });
-
-});
-
-// ======================================================
-// PÁGINA PRINCIPAL
-// ======================================================
-
-app.get("/", (req, res) => {
-
-    res.sendFile(
-        path.join(__dirname, "index.html")
-    );
-
-});
-
-// ======================================================
-// INICIAR SERVIDOR
-// ======================================================
 
 const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, async () => {
-
-    console.log("");
-    console.log("🚀 BBR RANKING");
-    console.log(
-        `🌐 Servidor iniciado na porta ${PORT}`
-    );
-
-    await atualizarCacheRanking();
-
-    // Atualiza a cada 10 minutos
-    setInterval(
-        atualizarCacheRanking,
-        10 * 60 * 1000
-    );
-
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor BBR Ranqueado rodando na porta ${PORT}`);
+  atualizarCacheRanking();
+  setInterval(atualizarCacheRanking, 10 * 60 * 1000);
 });
