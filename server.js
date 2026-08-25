@@ -74,14 +74,17 @@ setInterval(atualizarCache, 15 * 60 * 1000);
 app.get('/api/ranking', (req, res) => {
   res.json(cacheRanking);
 });
-app.get('/meu-ip', async (req, res) => {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+app.get('/meu-ip', (req, res) => {
+  const https = require('https');
+  https.get('https://api.ipify.org?format=json', (resposta) => {
+    let dados = '';
+    resposta.on('data', (chunk) => { dados += chunk; });
+    resposta.on('end', () => {
+      res.send(dados);
+    });
+  }).on('error', (err) => {
+    res.status(500).send(err.message);
+  });
 });
 
 // Porta do servidor
