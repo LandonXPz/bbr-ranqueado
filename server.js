@@ -18,78 +18,82 @@ const CLUBES = [
 ];
 
 let rankingCache = [];
+let processando = false;
 
-// Função auxiliar para buscar com fallback de Proxy contra bloqueio de IP
-async function fetchComProxy(targetUrl) {
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-  const response = await axios.get(proxyUrl, { timeout: 12000 });
-  
-  if (response.data && response.data.contents) {
-    return JSON.parse(response.data.contents);
-  }
-  throw new Error("Resposta de Proxy inválida");
-}
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-async function atualizarCacheRanking() {
-  console.log("🔄 [SISTEMA] Iniciando busca nos 8 Clubes...");
-  let todosMembros = [];
+async function atualizarCacheComFila() {
+  if (processando) return;
+  processando = true;
+
+  console.log("🔄 [FILA] Iniciando varredura lenta dos clubes e jogadores...");
+  let listaTemp = [];
 
   for (const clube of CLUBES) {
     try {
       const cleanTag = clube.tag.replace('#', '').trim();
       
       // 1. Busca os membros do clube via BrawlAPI
-      const urlClube = `https://api.brawlapi.com/v1/clubs/%23${cleanTag}`;
-      let dataClube;
+      const resClube = await axios.get(`https://api.brawlapi.com/v1/clubs/%23${cleanTag}`, { timeout: 10000 });
+      const membros = resClube.data.members || resClube.data.items || [];
 
-      try {
-        const res = await axios.get(urlClube, { timeout: 8000 });
-        dataClube = res.data;
-      } catch (e) {
-        // Se a chamada direta falhar/bloquear, usa o Proxy automaticamente
-        dataClube = await fetchComProxy(urlClube);
-      }
+      console.log(`📌 Clube ${clube.nome}: ${membros.length} membros encontrados. Mapeando Elo individual...`);
 
-      const membros = dataClube.members || dataClube.items || [];
-      console.log(`📌 ${clube.nome}: ${membros.length} membros encontrados.`);
-
-      // 2. Mapeia todos os jogadores daquele clube
       for (const m of membros) {
-        todosMembros.push({
+        const tagMembro = m.tag.replace('#', '').trim();
+        let eloRanked = 0;
+
+        try {
+          // 2. Busca o Elo individual no Brawl Time Ninja
+          const resPlayer = await axios.get(`https://brawltime.ninja/api/trpc/player.byTag?input=%7B%22json%22%3A%22${tagMembro}%22%7D`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 5000
+          });
+
+          const pData = resPlayer.data?.result?.data?.json;
+          // Extrai o Elo atual da Ranqueada
+          eloRanked = pData?.ranked?.current || pData?.powerLeague?.current || 0;
+        } catch (e) {
+          // Fallback silencioso caso ocorra instabilidade em um jogador específico
+          eloRanked = 0;
+        }
+
+        listaTemp.push({
           tag: m.tag,
           name: m.name,
           trophies: m.trophies || 0,
-          // Mapeia os pontos de Troféus/Elo para exibição imediata
-          pontos: m.trophies || 0, 
+          pontos: eloRanked > 0 ? eloRanked : (m.trophies || 0), // Exibe Elo; se zerado, usa troféus
+          eloRanked: eloRanked,
           clubName: clube.nome
         });
-      }
 
+        // Atualiza o cache vivo a cada jogador adicionado para o site não ficar sem dados
+        rankingCache = [...listaTemp].sort((a, b) => b.pontos - a.pontos);
+
+        // 🛑 Pausa de 2 segundos entre requisições para evitar erro 429
+        await delay(2000);
+      }
     } catch (err) {
-      console.log(`❌ Falha no clube ${clube.nome}: ${err.message}`);
+      console.log(`❌ Erro ao processar clube ${clube.nome}:`, err.message);
     }
   }
 
-  if (todosMembros.length > 0) {
-    // Ordena do maior para o menor ponto
-    todosMembros.sort((a, b) => b.pontos - a.pontos);
-    rankingCache = todosMembros;
-    console.log(`✅ [SUCESSO TOTAL] ${rankingCache.length} jogadores prontos no cache!`);
-  } else {
-    console.log("⚠️ NENHUM dado foi atualizado nesta rodada.");
-  }
+  console.log(`🚀 [FILA CONCLUÍDA] Total de ${rankingCache.length} jogadores atualizados com sucesso!`);
+  processando = false;
 }
 
-// Rota utilizada pelo seu script.js do site
+// Endpoint lido pelo frontend
 app.get('/api/ranking', (req, res) => {
   res.json(rankingCache);
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor BBR rodando na porta ${PORT}`);
-  atualizarCacheRanking();
+  console.log(`🚀 Servidor BBR com Fila rodando na porta ${PORT}`);
   
-  // Atualiza o cache a cada 5 minutos em segundo plano
-  setInterval(atualizarCacheRanking, 5 * 60 * 1000);
+  // Inicia o mapeamento imediatamente
+  atualizarCacheComFila();
+  
+  // Reinicia a varredura a cada 30 minutos
+  setInterval(atualizarCacheComFila, 30 * 60 * 1000);
 });
