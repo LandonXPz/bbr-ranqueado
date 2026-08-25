@@ -39,26 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderizarTabela(jogadores) {
+ function renderizarTabela(jogadores) {
     if (!tabelaCorpo) return;
     tabelaCorpo.innerHTML = '';
 
     jogadores.forEach((jogador, index) => {
         const linha = document.createElement('tr');
-        
-        // Garante que pontos e troféus não sejam 'undefined'
-        const pontosFormatados = (jogador.pontos !== undefined && jogador.pontos !== null && jogador.pontos > 0)
-            ? jogador.pontos.toLocaleString('pt-BR') 
-            : '-';
-            
-        const trofeusFormatados = (jogador.trofeus || jogador.trophies || 0).toLocaleString('pt-BR');
-
         linha.innerHTML = `
             <td>#${index + 1}</td>
             <td>${jogador.nome || jogador.name || 'Desconhecido'}</td>
-            <td>${pontosFormatados}</td>
-            <td>${trofeusFormatados}</td>
-            <td>${jogador.clube || jogador.clubName || ''}</td>
+            <td>${(jogador.trofeus || 0).toLocaleString('pt-BR')}</td>
+            <td>${jogador.clube || ''}</td>
         `;
         tabelaCorpo.appendChild(linha);
     });
