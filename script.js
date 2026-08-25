@@ -44,17 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
     tabelaCorpo.innerHTML = '';
 
     jogadores.forEach((jogador, index) => {
-      const linha = document.createElement('tr');
-      linha.innerHTML = `
-        <td>#${index + 1}</td>
-        <td>${jogador.name}</td>
-        <td>${jogador.pontos > 0 ? jogador.pontos.toLocaleString('pt-BR') : '-'}</td>
-        <td>${jogador.trophies.toLocaleString('pt-BR')}</td>
-        <td>${jogador.clubName}</td>
-      `;
-      tabelaCorpo.appendChild(linha);
+        const linha = document.createElement('tr');
+        
+        // Garante que pontos e troféus não sejam 'undefined'
+        const pontosFormatados = (jogador.pontos !== undefined && jogador.pontos !== null && jogador.pontos > 0)
+            ? jogador.pontos.toLocaleString('pt-BR') 
+            : '-';
+            
+        const trofeusFormatados = (jogador.trofeus || jogador.trophies || 0).toLocaleString('pt-BR');
+
+        linha.innerHTML = `
+            <td>#${index + 1}</td>
+            <td>${jogador.nome || jogador.name || 'Desconhecido'}</td>
+            <td>${pontosFormatados}</td>
+            <td>${trofeusFormatados}</td>
+            <td>${jogador.clube || jogador.clubName || ''}</td>
+        `;
+        tabelaCorpo.appendChild(linha);
     });
-  }
+}
 
   function aplicarOrdenacao() {
     if (!seletorOrdenacao) return;
