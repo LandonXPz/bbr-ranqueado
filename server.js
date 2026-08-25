@@ -6,83 +6,88 @@ const app = express();
 app.use(cors());
 app.use(express.static('./'));
 
-const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImUxMzRmNGE5LWVhZWUtNDg1MS05MzgxLTk4ZWQzNjQwNTgxMiIsImlhdCI6MTc4NzY1MzU3NSwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiNzQuMjIwLjQ4LjMwIl0sInR5cGUiOiJjbGllbnQifV19.1K5Vv7aHghJ0XrnlnXmMR1xRhoTASpI5dxhJX65wlJ_I3ReFX_yWqKkX-fcYw7BqMKA-CuvymNQPUfqSNeSitA';
+// Utilize a chave configurada no Render (Environment Variables) ou a sua chave padrão abaixo
+const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQzMTQzNjdiLWJlZmItNDAxNi04OTM1LWQ5YzQ4OTBiOTgyOCIsImlhdCI6MTc4NzU5NzExOCwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTkxLjU0LjIwMy44NyJdLCJ0eXBlIjoiY2xpZW50In1dfQ.LzPlYq_m92OH4aQwVK4f3f_gkKwjjhqQlidYvrZuORdKCiAiyAzLePiNFX5tkqSSfVFWv2CcXHeW0aijfGbTSQ';
 
-const CLUBE_INFO = {
-  '#CQYU8RQP':  { nome: 'BBR | Elite' },
-  '#2Q8LGGUQY': { nome: 'BBR | Mestres' },
-  '#820QG8Q2V': { nome: 'BBR | Lendário' },
-  '#2LVV8J8C8': { nome: 'BBR | Mítico' },
-  '#80GYP9LCG': { nome: 'BBR | Diamante' },
-  '#80LJYQ982': { nome: 'BBR | Ouro' },
-  '#80VCJU8LV': { nome: 'BBR | Prata' },
-  '#2CRUQ29LL': { nome: 'BBR | Bronze' }
-};
+const CLUBES = [
+  { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
+  { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
+  { tag: '820QG8Q2V', nome: 'BBR | Lendário' },
+  { tag: '2LVV8J8C8', nome: 'BBR | Mítico' },
+  { tag: '80GYP9LCG', nome: 'BBR | Diamante' },
+  { tag: '80LJYQ982', nome: 'BBR | Ouro' },
+  { tag: '80VCJU8LV', nome: 'BBR | Prata' },
+  { tag: '2CRUQ29LL', nome: 'BBR | Bronze' }
+];
 
-let cacheRanking = [];
+let rankingCache = [];
+let carregandoDados = false;
 
-async function atualizarCache() {
-  try {
-    console.log('🔄 Buscando Elo da Ranqueada de cada jogador...');
-    const todosJogadores = new Map();
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    for (const [tagClube, info] of Object.entries(CLUBE_INFO)) {
-      const tagClubeFormatada = encodeURIComponent(tagClube);
-      const urlClube = `https://api.brawlstars.com/v1/clubs/${tagClubeFormatada}/members`;
+async function atualizarCacheRanking() {
+  if (carregandoDados) return;
+  carregandoDados = true;
 
-      const respClube = await axios.get(urlClube, {
-        headers: { Authorization: `Bearer ${API_KEY}` }
-      });
+  console.log("🔄 Iniciando atualização do cache do ranking...");
+  let listaAtualizada = [];
 
-      for (const membro of respClube.data.items) {
-        if (!todosJogadores.has(membro.tag)) {
-          let eloRanqueada = 0;
+  for (const clube of CLUBES) {
+    try {
+      const resClube = await axios.get(
+        `https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`,
+        { headers: { Authorization: `Bearer ${API_KEY}` } }
+      );
 
-          try {
-            const tagPlayerFormatada = encodeURIComponent(membro.tag);
-            const urlPlayer = `https://api.brawlstars.com/v1/players/${tagPlayerFormatada}`;
-            const respPlayer = await axios.get(urlPlayer, {
-              headers: { Authorization: `Bearer ${API_KEY}` }
-            });
+      const membros = resClube.data.items || [];
 
-            // Puxa o Elo real da Ranqueada
-            eloRanqueada = respPlayer.data.rankedPoints 
-              || respPlayer.data.ranked?.current?.points 
-              || respPlayer.data.highestRankedPoints 
-              || 0;
-          } catch (e) {
-            // Em caso de limite de requisicoes, mantem 0
-          }
+      for (const membro of membros) {
+        let pontosRanqueada = 0;
+        const tagLimpa = membro.tag.replace('#', '');
 
-          todosJogadores.set(membro.tag, {
-            tag: membro.tag,
-            nome: membro.name,
-            trofeus: membro.trophies,
-            pontos: eloRanqueada,
-            clube: info.nome
-          });
+        try {
+          const resPlayer = await axios.get(
+            `https://api.brawlstars.com/v1/players/%23${tagLimpa}`,
+            { headers: { Authorization: `Bearer ${API_KEY}` } }
+          );
+
+          const data = resPlayer.data;
+          
+          pontosRanqueada = data.rankedElo || data.rankedRank || data.highestPowerLeagueRank || 0;
+        } catch (e) {
+          pontosRanqueada = 0;
         }
+
+        listaAtualizada.push({
+          tag: membro.tag,
+          name: membro.name,
+          trophies: membro.trophies || 0,
+          pontos: pontosRanqueada,
+          clubName: clube.nome
+        });
+
+        await sleep(80);
       }
+    } catch (err) {
+      console.log(`⚠️ Erro ao buscar clube ${clube.nome}:`, err.message);
     }
-
-    const listaOrdenada = Array.from(todosJogadores.values());
-    listaOrdenada.sort((a, b) => b.pontos - a.pontos);
-
-    cacheRanking = listaOrdenada;
-    console.log(`✅ Ranking atualizado! Total: ${cacheRanking.length} jogadores.`);
-  } catch (error) {
-    console.error('❌ Erro ao atualizar cache:', error.response?.data || error.message);
   }
+
+  if (listaAtualizada.length > 0) {
+    rankingCache = listaAtualizada;
+    console.log(`✅ Cache atualizado com sucesso! Total de ${rankingCache.length} jogadores.`);
+  }
+
+  carregandoDados = false;
 }
 
-atualizarCache();
-setInterval(atualizarCache, 20 * 60 * 1000);
-
 app.get('/api/ranking', (req, res) => {
-  res.json(cacheRanking);
+  res.json(rankingCache);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor BBR Ranqueado rodando na porta ${PORT}`);
+  atualizarCacheRanking();
+  setInterval(atualizarCacheRanking, 15 * 60 * 1000);
 });
