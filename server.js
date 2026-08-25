@@ -74,6 +74,15 @@ setInterval(atualizarCache, 15 * 60 * 1000);
 app.get('/api/ranking', (req, res) => {
   res.json(cacheRanking);
 });
+app.get('/meu-ip', async (req, res) => {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Porta do servidor
 const PORT = process.env.PORT || 3000;
