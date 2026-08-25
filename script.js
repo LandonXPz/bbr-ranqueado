@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function carregarRanking() {
     try {
-      const resposta = await fetch('http://localhost:3000/api/ranking');
+      const resposta = await fetch('/api/ranking');
       if (!resposta.ok) throw new Error('Erro na rede');
 
       jogadoresGlobais = await resposta.json();
