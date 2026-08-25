@@ -78,4 +78,3 @@ function renderizarTabela(jogadores) {
   }
 
   carregarRanking();
-});
