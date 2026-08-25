@@ -26,7 +26,7 @@ async function atualizarCacheRanking() {
   for (const clube of CLUBES) {
     try {
       const cleanTag = clube.tag.replace('#', '').trim();
-      const response = await axios.get(`https://api.brawlapi.com/v1/clubs/${cleanTag}`, {
+      const response = await axios.get(`https://api.brawlapi.com/v1/clubs/%23${cleanTag}`, {
         headers: { 'User-Agent': 'Mozilla/5.0' },
         timeout: 10000
       });
@@ -44,9 +44,9 @@ async function atualizarCacheRanking() {
             clubName: clube.nome
           });
         });
-        console.log(`✅ ${clube.nome}: ${membros.length} membros encontrados.`);
+        console.log(`✅ ${clube.nome}: ${membros.length} membros carregados.`);
       } else {
-        console.log(`⚠️ ${clube.nome}: Resposta vazia da API.`);
+        console.log(`⚠️ ${clube.nome}: Resposta sem membros.`);
       }
     } catch (err) {
       console.log(`❌ Erro no clube ${clube.nome}:`, err.message);
@@ -55,7 +55,7 @@ async function atualizarCacheRanking() {
 
   if (listaAtualizada.length > 0) {
     rankingCache = listaAtualizada;
-    console.log(`🚀 SUCESSO FINAL: ${rankingCache.length} jogadores carregados no cache.`);
+    console.log(`🚀 SUCESSO: ${rankingCache.length} jogadores no cache.`);
   } else {
     console.log("❌ NENHUM jogador carregado.");
   }
