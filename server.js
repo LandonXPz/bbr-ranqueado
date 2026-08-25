@@ -6,6 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.static('./'));
 
+const API_KEY = process.env.SUPERCELL_KEY;
+
 const CLUBES = [
   { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
   { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
@@ -20,16 +22,21 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros via BrawlAPI...");
+  console.log("🔄 Buscando membros via Proxy de Requisições...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      const resClube = await axios.get(
-        `https://api.brawlapi.com/v1/clubs/${clube.tag}`
-      );
+      // Usa o serviço api.allorigins.win para contornar o bloqueio de IP do Render
+      const targetUrl = encodeURIComponent(`https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`);
+      const resClube = await axios.get(`https://api.allorigins.win/get?url=${targetUrl}`, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      });
 
-      const membros = resClube.data.members || [];
+      const dataParsed = JSON.parse(resClube.data.contents);
+      const membros = dataParsed.items || [];
 
       membros.forEach(membro => {
         listaAtualizada.push({
