@@ -20,42 +20,47 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros dos clubes via BrawlAPI...");
+  console.log("🔄 Buscando membros dos clubes...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Formatação limpa da Tag do Clube
-      const cleanTag = clube.tag.replace('#', '');
-      const url = `https://api.brawlapi.com/v1/clubs/%23${cleanTag}`;
-      
-      const res = await axios.get(url, { timeout: 10000 });
-      const membros = res.data.members || [];
-
-      membros.forEach(membro => {
-        listaAtualizada.push({
-          tag: membro.tag,
-          name: membro.name,
-          trophies: membro.trophies || 0,
-          // Como fallback seguro, exibe os troféus/pontuação base do membro
-          pontos: membro.trophies || 0, 
-          clubName: clube.nome
-        });
+      const cleanTag = clube.tag.replace('#', '').trim();
+      const response = await axios.get(`https://api.brawlapi.com/v1/clubs/${cleanTag}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        timeout: 10000
       });
+
+      const data = response.data;
+      const membros = data.members || data.items || [];
+
+      if (Array.isArray(membros) && membros.length > 0) {
+        membros.forEach(membro => {
+          listaAtualizada.push({
+            tag: membro.tag,
+            name: membro.name,
+            trophies: membro.trophies || 0,
+            pontos: membro.trophies || 0,
+            clubName: clube.nome
+          });
+        });
+        console.log(`✅ ${clube.nome}: ${membros.length} membros encontrados.`);
+      } else {
+        console.log(`⚠️ ${clube.nome}: Resposta vazia da API.`);
+      }
     } catch (err) {
-      console.log(`⚠️ Erro ao carregar clube ${clube.nome}:`, err.message);
+      console.log(`❌ Erro no clube ${clube.nome}:`, err.message);
     }
   }
 
   if (listaAtualizada.length > 0) {
     rankingCache = listaAtualizada;
-    console.log(`✅ SUCESSO! Total de ${rankingCache.length} jogadores carregados no cache.`);
+    console.log(`🚀 SUCESSO FINAL: ${rankingCache.length} jogadores carregados no cache.`);
   } else {
-    console.log("❌ NENHUM dado foi carregado nesta tentativa.");
+    console.log("❌ NENHUM jogador carregado.");
   }
 }
 
-// Rota utilizada pelo seu script.js frontend
 app.get('/api/ranking', (req, res) => {
   res.json(rankingCache);
 });
@@ -64,6 +69,5 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   atualizarCacheRanking();
-  // Atualiza os dados a cada 10 minutos
   setInterval(atualizarCacheRanking, 10 * 60 * 1000);
 });
