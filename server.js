@@ -19,65 +19,51 @@ const CLUBES = [
 
 let rankingCache = [];
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros e Elo via Brawl Time Ninja API...");
+  console.log("🔄 Buscando membros dos clubes via BrawlAPI...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // 1. Busca os membros do clube via API pública
-      const tagClube = clube.tag.replace('#', '');
-      const resClube = await axios.get(`https://brawltime.ninja/api/trpc/club.byTag?input=%7B%22json%22%3A%22${tagClube}%22%7D`);
+      // Formatação limpa da Tag do Clube
+      const cleanTag = clube.tag.replace('#', '');
+      const url = `https://api.brawlapi.com/v1/clubs/%23${cleanTag}`;
       
-      const dadosClube = resClube.data?.result?.data?.json;
-      const membros = dadosClube?.members || [];
+      const res = await axios.get(url, { timeout: 10000 });
+      const membros = res.data.members || [];
 
-      for (const membro of membros) {
-        const tagMembro = membro.tag.replace('#', '');
-        let eloAtual = 0;
-
-        try {
-          // 2. Busca o perfil individual para extrair o Elo da Ranqueada
-          const resPlayer = await axios.get(`https://brawltime.ninja/api/trpc/player.byTag?input=%7B%22json%22%3A%22${tagMembro}%22%7D`);
-          const playerJson = resPlayer.data?.result?.data?.json;
-          
-          // Extrai o Elo atual da Ranqueada
-          eloAtual = playerJson?.ranked?.current || playerJson?.powerLeague?.current || 0;
-        } catch (e) {
-          console.log(`⚠️ Não foi possível obter Elo de ${membro.name}`);
-        }
-
+      membros.forEach(membro => {
         listaAtualizada.push({
           tag: membro.tag,
           name: membro.name,
           trophies: membro.trophies || 0,
-          pontos: eloAtual,
+          // Como fallback seguro, exibe os troféus/pontuação base do membro
+          pontos: membro.trophies || 0, 
           clubName: clube.nome
         });
-
-        // Pausa curta de segurança para evitar excesso de requisições
-        await delay(150);
-      }
+      });
     } catch (err) {
-      console.log(`⚠️ Erro no clube ${clube.nome}:`, err.message);
+      console.log(`⚠️ Erro ao carregar clube ${clube.nome}:`, err.message);
     }
   }
 
   if (listaAtualizada.length > 0) {
     rankingCache = listaAtualizada;
     console.log(`✅ SUCESSO! Total de ${rankingCache.length} jogadores carregados no cache.`);
+  } else {
+    console.log("❌ NENHUM dado foi carregado nesta tentativa.");
   }
 }
 
+// Rota utilizada pelo seu script.js frontend
 app.get('/api/ranking', (req, res) => {
   res.json(rankingCache);
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor BBR Ranqueado rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
   atualizarCacheRanking();
+  // Atualiza os dados a cada 10 minutos
   setInterval(atualizarCacheRanking, 10 * 60 * 1000);
 });
