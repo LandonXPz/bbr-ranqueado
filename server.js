@@ -6,7 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.static('./'));
 
-// Sua chave nova configurada diretamente
 const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQyYWI0Y2Y4LTYyNTMtNDE2YS1hZGJiLWRmYjcyYzcyMzBkOCIsImlhdCI6MTc4NzY2MDA1OSwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTc3LjE5MS42MC4yMDEiXSwidHlwZSI6ImNsaWVudCJ9XX0.Yg8r0FqJrRqsa-5z9vUudXxmw6Bvbar8Mhdthd3Yu7yzcISNEW4NxgN_VbIOHQlyqJKugHswEH2zhHU4tErZWg';
 
 const CLUBES = [
@@ -23,24 +22,24 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Atualizando lista de jogadores...");
+  console.log("🔄 Atualizando lista via proxy público...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
+      // Usa o proxy public-brawlstars-api para contornar a trava de IP no Render
       const resClube = await axios.get(
-        `https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`,
-        { headers: { Authorization: `Bearer ${API_KEY}` } }
+        `https://api.brawlapi.com/v1/clubs/%23${clube.tag}/members`
       );
 
-      const membros = resClube.data.items || [];
+      const membros = resClube.data.items || resClube.data.members || [];
 
       membros.forEach(membro => {
         listaAtualizada.push({
           tag: membro.tag,
           name: membro.name,
           trophies: membro.trophies || 0,
-          pontos: membro.trophies || 0, // Exibe instantaneamente para evitar travamento
+          pontos: membro.trophies || 0,
           clubName: clube.nome
         });
       });
@@ -63,5 +62,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor BBR Ranqueado rodando na porta ${PORT}`);
   atualizarCacheRanking();
-  setInterval(atualizarCacheRanking, 10 * 60 * 1000); // Atualiza a cada 10 minutos
+  setInterval(atualizarCacheRanking, 10 * 60 * 1000);
 });
