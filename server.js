@@ -6,6 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.static('./'));
 
+const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQyYWI0Y2Y4LTYyNTMtNDE2YS1hZGJiLWRmYjcyYzcyMzBkOCIsImlhdCI6MTc4NzY2MDA1OSwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTc3LjE5MS42MC4yMDEiXSwidHlwZSI6ImNsaWVudCJ9XX0.Yg8r0FqJrRqsa-5z9vUudXxmw6Bvbar8Mhdthd3Yu7yzcISNEW4NxgN_VbIOHQlyqJKugHswEH2zhHU4tErZWg';
+
 const CLUBES = [
   { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
   { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
@@ -20,22 +22,18 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros via Brawlify com User-Agent...");
+  console.log("🔄 Buscando membros via Proxy de Produção...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Adicionado User-Agent para evitar o bloqueio 403 do Cloudflare
-      const resClube = await axios.get(
-        `https://api.brawlify.com/v1/clubs/${clube.tag}`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          }
-        }
-      );
+      // Repassa a requisição por um proxy que oculta o IP do Render
+      const urlTarget = encodeURIComponent(`https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`);
+      const resClube = await axios.get(`https://corsproxy.io/?${urlTarget}`, {
+        headers: { Authorization: `Bearer ${API_KEY}` }
+      });
 
-      const membros = resClube.data.members || [];
+      const membros = resClube.data.items || [];
 
       membros.forEach(membro => {
         listaAtualizada.push({
@@ -53,7 +51,7 @@ async function atualizarCacheRanking() {
 
   if (listaAtualizada.length > 0) {
     rankingCache = listaAtualizada;
-    console.log(`✅ Sucesso! Total de ${rankingCache.length} jogadores carregados.`);
+    console.log(`✅ SUCESSO! Total de ${rankingCache.length} jogadores carregados no cache.`);
   }
 }
 
