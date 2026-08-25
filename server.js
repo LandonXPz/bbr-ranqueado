@@ -20,18 +20,16 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros via API pública Brawlify...");
+  console.log("🔄 Buscando membros via BrawlAPI...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Faz a busca convertendo a TAG para URI sem símbolos especiais que geram 403
-      const tagLimpa = clube.tag.replace('#', '');
       const resClube = await axios.get(
-        `https://api.brawlapi.com/v1/clubs/%23${tagLimpa}`
+        `https://api.brawlapi.com/v1/clubs/${clube.tag}`
       );
 
-      const membros = resClube.data.members || resClube.data.items || [];
+      const membros = resClube.data.members || [];
 
       membros.forEach(membro => {
         listaAtualizada.push({
