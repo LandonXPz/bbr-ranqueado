@@ -7,14 +7,13 @@ app.use(cors());
 app.use(express.static('./'));
 
 const CLUBES = [
-  { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
-  { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
-  { tag: '820QG8Q2V', nome: 'BBR | Lendário' },
-  { tag: '2LVV8J8C8', nome: 'BBR | Mítico' },
-  { tag: '80GYP9LCG', nome: 'BBR | Diamante' },
-  { tag: '80LJYQ982', nome: 'BBR | Ouro' },
-  { tag: '80VCJU8LV', nome: 'BBR | Prata' },
-  { tag: '2CRUQ29LL', nome: 'BBR | Bronze' }
+  { tag: '#2Q8LGGUQY', nome: 'BBR | Mestres' },
+  { tag: '#820QG8Q2V', nome: 'BBR | Lendário' },
+  { tag: '#2LVV8J8C8', nome: 'BBR | Mítico' },
+  { tag: '#80GYP9LCG', nome: 'BBR | Diamante' },
+  { tag: '#80LJYQ982', nome: 'BBR | Ouro' },
+  { tag: '#80VCJU8LV', nome: 'BBR | Prata' },
+  { tag: '#2CRUQ29LL', nome: 'BBR | Bronze' }
 ];
 
 let rankingCache = [];
