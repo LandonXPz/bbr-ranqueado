@@ -1,81 +1,79 @@
-let jogadoresGlobais = [];
+document.addEventListener('DOMContentLoaded', () => {
+  const tabelaCorpo = document.querySelector('tbody');
+  const seletorOrdenacao = document.getElementById('ordenar');
+  let jogadoresGlobais = [];
 
-const tabelaCorpo = document.getElementById('tabela-corpo');
-const seletorOrdenacao = document.getElementById('ordenar');
-
-async function carregarRanking() {
+  async function carregarRanking() {
     try {
-        const resposta = await fetch('/api/ranking');
-        if (!resposta.ok) throw new Error('Erro ao buscar dados do servidor');
-        
-        jogadoresGlobais = await resposta.json();
-        
-        if (jogadoresGlobais.length === 0) {
-            if (tabelaCorpo) {
-                tabelaCorpo.innerHTML = '<tr><td colspan="5">Atualizando cache do servidor... Aguarde 30 segundos e recarregue.</td></tr>';
-            }
-            return;
-        }
+      // Usa rota relativa para funcionar tanto no Render quanto no localhost
+      const resposta = await fetch('/api/ranking');
+      if (!resposta.ok) throw new Error('Erro na rede');
 
-        aplicarOrdenacao();
-    } catch (erro) {
-        console.error('Erro ao buscar dados:', erro);
+      jogadoresGlobais = await resposta.json();
+
+      if (jogadoresGlobais.length === 0) {
         if (tabelaCorpo) {
-            tabelaCorpo.innerHTML = '<tr><td colspan="5">Erro ao conectar com o servidor. Tente novamente mais tarde.</td></tr>';
+          tabelaCorpo.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 20px;">
+                Carregando dados da Ranqueada... Aguarde um instante e atualize (F5).
+              </td>
+            </tr>
+          `;
         }
+        return;
+      }
+      
+      const opcaoAtual = seletorOrdenacao ? seletorOrdenacao.value : 'trofeus';
+      ordenarEExibir(opcaoAtual);
+    } catch (erro) {
+      console.error('Erro ao buscar dados:', erro);
+      if (tabelaCorpo) {
+        tabelaCorpo.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 20px;">
+              Erro ao conectar com o servidor.
+            </td>
+          </tr>
+        `;
+      }
     }
-}
+  }
 
-function renderizarTabela(jogadores) {
+  function renderizarTabela(jogadores) {
     if (!tabelaCorpo) return;
     tabelaCorpo.innerHTML = '';
 
     jogadores.forEach((jogador, index) => {
-        const linha = document.createElement('tr');
-
-        // Pega a pontuação testando os nomes mais comuns vindos da API
-        const pontos = jogador.pontos 
-            ?? jogador.pontosRanqueada 
-            ?? jogador.rankingPoints 
-            ?? jogador.rankPoints 
-            ?? jogador.points;
-
-        const pontosFormatados = (pontos !== undefined && pontos !== null)
-            ? Number(pontos).toLocaleString('pt-BR')
-            : '-';
-
-        const trofeusFormatados = (jogador.trofeus || jogador.trophies || 0).toLocaleString('pt-BR');
-
-        linha.innerHTML = `
-            <td>#${index + 1}</td>
-            <td>${jogador.nome || jogador.name || 'Desconhecido'}</td>
-            <td>${pontosFormatados}</td>
-            <td>${trofeusFormatados}</td>
-            <td>${jogador.clube || jogador.clubName || ''}</td>
-        `;
-
-        tabelaCorpo.appendChild(linha);
+      const linha = document.createElement('tr');
+      linha.innerHTML = `
+        <td>#${index + 1}</td>
+        <td>${jogador.name}</td>
+        <td>${jogador.pontos > 0 ? jogador.pontos.toLocaleString('pt-BR') : '-'}</td>
+        <td>${jogador.trophies.toLocaleString('pt-BR')}</td>
+        <td>${jogador.clubName}</td>
+      `;
+      tabelaCorpo.appendChild(linha);
     });
-}
+  }
 
-function aplicarOrdenacao() {
-    if (!seletorOrdenacao) return;
-
-    let listaOrdenada = [...jogadoresGlobais];
-    const criterio = seletorOrdenacao.value;
+  function ordenarEExibir(criterio) {
+    let lista = [...jogadoresGlobais];
 
     if (criterio === 'pontos') {
-        listaOrdenada.sort((a, b) => (Number(b.pontos) || 0) - (Number(a.pontos) || 0));
+      lista.sort((a, b) => b.pontos - a.pontos);
     } else {
-        listaOrdenada.sort((a, b) => (Number(b.trofeus || b.trophies) || 0) - (Number(a.trofeus || a.trophies) || 0));
+      lista.sort((a, b) => b.trophies - a.trophies);
     }
 
-    renderizarTabela(listaOrdenada);
-}
+    renderizarTabela(lista);
+  }
 
-if (seletorOrdenacao) {
-    seletorOrdenacao.addEventListener('change', aplicarOrdenacao);
-}
+  if (seletorOrdenacao) {
+    seletorOrdenacao.addEventListener('change', (e) => {
+      ordenarEExibir(e.target.value);
+    });
+  }
 
-// Carrega o ranking ao abrir a página
-carregarRanking();
+  carregarRanking();
+});
