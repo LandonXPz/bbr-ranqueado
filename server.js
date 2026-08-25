@@ -21,18 +21,21 @@ const CLUBES = [
 
 let rankingCache = [];
 
+// Função de pausa entre requisições para evitar estouro de tempo (Timeout 522)
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 async function atualizarCacheRanking() {
   console.log("🔄 Buscando membros via Proxy de Requisições...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Usa o serviço api.allorigins.win para contornar o bloqueio de IP do Render
       const targetUrl = encodeURIComponent(`https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`);
       const resClube = await axios.get(`https://api.allorigins.win/get?url=${targetUrl}`, {
         headers: {
           'Authorization': `Bearer ${API_KEY}`
-        }
+        },
+        timeout: 15000
       });
 
       const dataParsed = JSON.parse(resClube.data.contents);
@@ -47,6 +50,9 @@ async function atualizarCacheRanking() {
           clubName: clube.nome
         });
       });
+
+      // Aguarda 1 segundo antes de consultar o próximo clube
+      await delay(1000);
     } catch (err) {
       console.log(`⚠️ Erro no clube ${clube.nome}:`, err.message);
     }
