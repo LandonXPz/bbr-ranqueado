@@ -39,30 +39,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
- function renderizarTabela(jogadores) {
+function renderizarTabela(jogadores) {
     if (!tabelaCorpo) return;
     tabelaCorpo.innerHTML = '';
 
     jogadores.forEach((jogador, index) => {
         const linha = document.createElement('tr');
+
+        const pontosFormatados = (jogador.pontos !== undefined && jogador.pontos !== null)
+            ? jogador.pontos.toLocaleString('pt-BR')
+            : '-';
+
+        const trofeusFormatados = (jogador.trofeus || jogador.trophies || 0).toLocaleString('pt-BR');
+
         linha.innerHTML = `
             <td>#${index + 1}</td>
             <td>${jogador.nome || jogador.name || 'Desconhecido'}</td>
-            <td>${(jogador.trofeus || 0).toLocaleString('pt-BR')}</td>
-            <td>${jogador.clube || ''}</td>
+            <td>${trofeusFormatados}</td>
+            <td>${pontosFormatados}</td>
+            <td>${jogador.clube || jogador.clubName || ''}</td>
         `;
         tabelaCorpo.appendChild(linha);
     });
 }
-
-  function aplicarOrdenacao() {
-    if (!seletorOrdenacao) return;
-
-    // Cria uma cópia do array para não alterar o original
-    let listaOrdenada = [...jogadoresGlobais];
-    const criterio = seletorOrdenacao.value;
-
-    if (criterio === 'pontos' || criterio === 'Pontos') {
       // Ordena estritamente do MAIOR para o MENOR em Pontos
       listaOrdenada.sort((a, b) => Number(b.pontos) - Number(a.pontos));
     } else {
