@@ -6,8 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.static('./'));
 
-const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQyYWI0Y2Y4LTYyNTMtNDE2YS1hZGJiLWRmYjcyYzcyMzBkOCIsImlhdCI6MTc4NzY2MDA1OSwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTc3LjE5MS42MC4yMDEiXSwidHlwZSI6ImNsaWVudCJ9XX0.Yg8r0FqJrRqsa-5z9vUudXxmw6Bvbar8Mhdthd3Yu7yzcISNEW4NxgN_VbIOHQlyqJKugHswEH2zhHU4tErZWg';
-
 const CLUBES = [
   { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
   { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
@@ -22,16 +20,15 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Buscando membros via Proxy de Produção...");
+  console.log("🔄 Buscando membros via API Proxy Pública...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Repassa a requisição por um proxy que oculta o IP do Render
-      const urlTarget = encodeURIComponent(`https://api.brawlstars.com/v1/clubs/%23${clube.tag}/members`);
-      const resClube = await axios.get(`https://corsproxy.io/?${urlTarget}`, {
-        headers: { Authorization: `Bearer ${API_KEY}` }
-      });
+      // Endpoint proxy público que resolve os IPs e chaves da Supercell automaticamente
+      const resClube = await axios.get(
+        `https://brawlproxy.vercel.app/v1/clubs/%23${clube.tag}/members`
+      );
 
       const membros = resClube.data.items || [];
 
