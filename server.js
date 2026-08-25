@@ -22,8 +22,26 @@ const CLUBES = {
 
 let cacheRanking = [];
 
-// Função de pausa para evitar ultrapassar o limite de requisições da API
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Função para extrair o Elo/Pontos do Ranqueado em qualquer formato retornado pela API
+function extrairPontosRanqueado(dados) {
+  if (!dados) return 0;
+  
+  // 1. Tenta propriedades diretas conhecidas
+  if (dados.rankedPoints) return dados.rankedPoints;
+  if (dados.soloRankedPoints) return dados.soloRankedPoints;
+  if (dados.ranked && typeof dados.ranked === 'number') return dados.ranked;
+  if (dados.ranked && dados.ranked.current) return dados.ranked.current;
+  
+  // 2. Procura em arrays de estatísticas/atribuições caso a API envie mapeado
+  if (Array.isArray(dados.stats)) {
+    const statRanked = dados.stats.find(s => s.name && s.name.toLowerCase().includes('ranked'));
+    if (statRanked && statRanked.value) return statRanked.value;
+  }
+
+  return 0;
+}
 
 async function atualizarCache() {
   try {
@@ -42,15 +60,13 @@ async function atualizarCache() {
           let pontosRanqueado = 0;
 
           try {
-            // Busca os dados individuais do jogador para capturar o Elo do Ranqueado
             const tagJogadorFormatada = encodeURIComponent(membro.tag);
             const resJogador = await axios.get(
               `https://api.brawlstars.com/v1/players/${tagJogadorFormatada}`,
               { headers: { Authorization: `Bearer ${API_KEY}` } }
             );
 
-            // A API retorna o Elo em 'rankedPoints' ou 'ranked'
-            pontosRanqueado = resJogador.data.rankedPoints || resJogador.data.ranked?.current || 0;
+            pontosRanqueado = extrairPontosRanqueado(resJogador.data);
           } catch (errPlayer) {
             pontosRanqueado = 0;
           }
@@ -63,8 +79,8 @@ async function atualizarCache() {
             clube: nomeClube
           });
 
-          // Aguarda 50ms entre cada jogador para respeitar a taxa limite da API
-          await delay(50);
+          // Aguarda 60ms entre requisições de jogadores para evitar bloqueio da API
+          await delay(60);
         }
       }
     }
@@ -73,7 +89,7 @@ async function atualizarCache() {
     listaOrdenada.sort((a, b) => b.trofeus - a.trofeus);
 
     cacheRanking = listaOrdenada;
-    console.log(`✅ Cache atualizado com sucesso! Total: ${cacheRanking.length} jogadores.`);
+    console.log(`✅ Cache atualizado com sucesso! Total de jogadores: ${cacheRanking.length}`);
   } catch (error) {
     console.error('❌ Erro ao atualizar cache:', error.response?.data || error.message);
   }
