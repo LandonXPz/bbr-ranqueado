@@ -6,8 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.static('./'));
 
-const API_KEY = process.env.SUPERCELL_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImQyYWI0Y2Y4LTYyNTMtNDE2YS1hZGJiLWRmYjcyYzcyMzBkOCIsImlhdCI6MTc4NzY2MDA1OSwic3ViIjoiZGV2ZWxvcGVyL2RhZDhiYWZiLWViMjItNDQwMC04YTU0LTdjOTU5N2M5YTAyZSIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTc3LjE5MS42MC4yMDEiXSwidHlwZSI6ImNsaWVudCJ9XX0.Yg8r0FqJrRqsa-5z9vUudXxmw6Bvbar8Mhdthd3Yu7yzcISNEW4NxgN_VbIOHQlyqJKugHswEH2zhHU4tErZWg';
-
 const CLUBES = [
   { tag: 'CQYU8RQP', nome: 'BBR | Elite' },
   { tag: '2Q8LGGUQY', nome: 'BBR | Mestres' },
@@ -22,17 +20,17 @@ const CLUBES = [
 let rankingCache = [];
 
 async function atualizarCacheRanking() {
-  console.log("🔄 Atualizando lista via proxy público...");
+  console.log("🔄 Buscando membros dos clubes via API pública...");
   let listaAtualizada = [];
 
   for (const clube of CLUBES) {
     try {
-      // Usa o proxy public-brawlstars-api para contornar a trava de IP no Render
+      // API pública do Brawlify (sem necessidade de API key ou IP fixo)
       const resClube = await axios.get(
-        `https://api.brawlapi.com/v1/clubs/%23${clube.tag}/members`
+        `https://api.brawlify.com/v1/clubs/%23${clube.tag}`
       );
 
-      const membros = resClube.data.items || resClube.data.members || [];
+      const membros = resClube.data.members || [];
 
       membros.forEach(membro => {
         listaAtualizada.push({
@@ -50,7 +48,7 @@ async function atualizarCacheRanking() {
 
   if (listaAtualizada.length > 0) {
     rankingCache = listaAtualizada;
-    console.log(`✅ Sucesso! ${rankingCache.length} jogadores carregados no cache.`);
+    console.log(`✅ Sucesso! Total de ${rankingCache.length} jogadores carregados no cache.`);
   }
 }
 
@@ -58,7 +56,7 @@ app.get('/api/ranking', (req, res) => {
   res.json(rankingCache);
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor BBR Ranqueado rodando na porta ${PORT}`);
   atualizarCacheRanking();
